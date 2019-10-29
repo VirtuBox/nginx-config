@@ -1,21 +1,11 @@
-# EasyEngine admin NGINX CONFIGURATION
+# WordOps admin NGINX CONFIGURATION - WO v3.9.7
 
 server {
 
   listen 22222 default_server ssl http2;
 
-  access_log   off;
+  access_log   /var/log/nginx/22222.access.log rt_cache;
   error_log    /var/log/nginx/22222.error.log;
-
-
-  ssl_certificate /var/www/22222/cert/22222.crt;
-  ssl_certificate_key /var/www/22222/cert/22222.key;
-
-  location /vts_status {
-   vhost_traffic_status_display;
-   vhost_traffic_status_display_format html;
-  }
-
 
   # Force HTTP to HTTPS
   error_page 497 =200 https://$host:22222$request_uri;
@@ -29,8 +19,14 @@ server {
   # HTTP Authentication on port 22222
   include common/acl.conf;
 
+  # nginx-vts-status
+  location /vts_status {
+  vhost_traffic_status_display;
+  vhost_traffic_status_display_format html;
+  }
+
   location / {
-    try_files $uri $uri/ /index.php?$args;
+    try_files $uri $uri/ /index.php$is_args$args;
   }
 
   # Display menu at location /fpm/status/
@@ -49,24 +45,7 @@ server {
     fastcgi_pass php72;
   }
 
-  # ViMbAdmin Rules
-  location = /vimbadmin/ {
-    return 301 $scheme://$host:22222/vimbadmin/public/;
-  }
-
-
-
-  location ~* /vimbadmin/public/(.*)/(.*) {
-    root /var/www/22222/htdocs/vimbadmin/public;
-    try_files $uri $uri/  /vimbadmin/public/index.php?$args;
-  }
-
-  location ~* /vimbadmin/public/(.*) {
-    root /var/www/22222/htdocs/vimbadmin/public;
-    try_files $uri $uri/  /vimbadmin/public/index.php?$args;
-  }
-
-   location /netdata {
+     location /netdata {
         return 301 /netdata/;
    }
 
@@ -83,9 +62,8 @@ server {
         proxy_store off;
         proxy_pass http://netdata/$ndpath$is_args$args;
 
-        gzip on;
-        gzip_proxied any;
-        gzip_types *;
     }
+
+    include /var/www/22222/conf/nginx/*.conf;
 
 }
